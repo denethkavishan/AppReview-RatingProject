@@ -1,123 +1,99 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons or any suitable library for icons
+import { View, Text, StyleSheet, ScrollView, TextInput, Button, TouchableOpacity } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 
-// Review interface
-interface Review {
-  username: string;
+type ReviewData = {
   rating: number;
   comment: string;
-  date: string;
-}
+};
 
-const App: React.FC = () => {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [username, setUsername] = useState('');
-  const [rating, setRating] = useState<number>(0); // Changed to number
+const StarRating = ({ selected, onSelect }: { selected: number; onSelect: (rating: number) => void }) => {
+  const renderStars = () => {
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <TouchableOpacity key={i} onPress={() => onSelect(i)}>
+          <Text>{i <= selected ? '★' : '☆'}</Text>
+        </TouchableOpacity>
+      );
+    }
+    return stars;
+  };
+
+  return <View style={{ flexDirection: 'row' }}>{renderStars()}</View>;
+};
+
+const AppRatingReviewPage = ({ navigation }: { navigation: any }) => {
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  const [submittedReviews, setSubmittedReviews] = useState<ReviewData[]>([]);
 
-  const addReview = () => {
-    if (username && rating >= 1 && rating <= 5 && comment) { // Validate rating range
-      const newReview: Review = {
-        username,
-        rating,
-        comment,
-        date: new Date().toDateString(),
-      };
-      setReviews([...reviews, newReview]);
-      clearFields();
-    }
+  const handleRatingSelection = (selectedRating: number) => {
+    setRating(selectedRating);
   };
 
-  // Calculate average rating
-  const calculateAverageRating = (): number => {
-    if (reviews.length === 0) {
-      return 0;
-    }
-    const totalRating = reviews.reduce((acc, review) => acc + review.rating, 0);
-    return totalRating / reviews.length;
-  };
-
-  // Display stars for rating
-  const renderStars = (rating: number): JSX.Element => {
-    const filledStars = Math.floor(rating);
-    const hasHalfStar = rating - filledStars >= 0.5;
-
-    return (
-      <View style={{ flexDirection: 'row' }}>
-        {[...Array(Math.min(filledStars, 5))].map((_, index) => ( // Limit stars to 5
-          <Ionicons key={index} name="star" size={24} color="gold" />
-        ))}
-        {hasHalfStar && <Ionicons name="star-half" size={24} color="gold" />}
-      </View>
-    );
-  };
-
-  // Clear form fields
-  const clearFields = () => {
-    setUsername('');
+  const submitReview = () => {
+    console.log(`Rating: ${rating}, Comment: ${comment}`);
+    const newReview = { rating, comment };
+    setSubmittedReviews([...submittedReviews, newReview]);
     setRating(0);
     setComment('');
+    navigation.navigate('AboutPage'); // Navigate to the AboutPage
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>App Reviews</Text>
+      <Text style={styles.title}>Rate Our App</Text>
 
-      {/* Review Form */}
-      <View style={styles.formContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Username"
-          value={username}
-          onChangeText={setUsername}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Rating (1-5)"
-          value={rating.toString()}
-          onChangeText={(value) => setRating(parseInt(value))}
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={[styles.input, styles.commentInput]}
-          placeholder="Comment"
-          value={comment}
-          onChangeText={setComment}
-          multiline
-        />
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-          <Button title="Submit Review" onPress={addReview} />
-          <TouchableOpacity onPress={clearFields}>
-            <Text style={styles.clearButton}>Clear</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      {/* Rating Input */}
+      <StarRating selected={rating} onSelect={handleRatingSelection} />
 
-      {/* Reviews List */}
-      <View style={styles.reviewsContainer}>
-        <Text style={styles.subtitle}>Reviews:</Text>
-        <FlatList
-          data={reviews}
-          renderItem={({ item }) => (
-            <View style={styles.reviewItem}>
-              <Text>{`User: ${item.username}`}</Text>
-              <Text>{`Rating: ${item.rating}/5`}</Text>
-              <Text>{`Comment: ${item.comment}`}</Text>
-              <Text>{`Date: ${item.date}`}</Text>
-              {renderStars(item.rating)}
-            </View>
-          )}
-          keyExtractor={(item, index) => index.toString()}
-        />
-      </View>
+      {/* Comment Input */}
+      <Text>Leave a comment:</Text>
+      <TextInput
+        style={[styles.input, styles.commentInput, { color: 'black' }]}
+        placeholder="Enter your comment"
+        multiline
+        value={comment}
+        onChangeText={setComment}
+      />
 
-      {/* Display average rating and total reviews */}
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>{`Average Rating: ${calculateAverageRating().toFixed(1)}/5`}</Text>
-        <Text style={styles.footerText}>{`Total Reviews: ${reviews.length}`}</Text>
-      </View>
+      {/* Submit Button */}
+      <Button title="Submit Review" onPress={submitReview} />
+
+      {/* Display submitted reviews */}
+      <ScrollView style={styles.scrollView}>
+        {submittedReviews.map((review, index) => (
+          <View key={index} style={styles.reviewContainer}>
+            <Text style={styles.reviewTitle}>Review {index + 1}:</Text>
+            <Text style={styles.submittedText}>Rating: {review.rating}</Text>
+            <Text style={styles.submittedText}>Comment: {review.comment}</Text>
+          </View>
+        ))}
+      </ScrollView>
     </View>
+  );
+};
+
+const AboutPage = () => {
+  return (
+    <View style={styles.container}>
+      <Text>About Page</Text>
+    </View>
+  );
+};
+
+const Stack = createStackNavigator();
+
+const App = () => {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="AppRatingReviewPage">
+        <Stack.Screen name="AppRatingReviewPage" component={AppRatingReviewPage} />
+        <Stack.Screen name="AboutPage" component={AboutPage} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 };
 
@@ -127,53 +103,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
+    backgroundColor: '#f9f9f9',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
-  },
-  formContainer: {
-    width: '100%',
-    marginBottom: 20,
+    color: 'darkblue',
   },
   input: {
     height: 40,
+    width: '80%',
     borderColor: 'gray',
     borderWidth: 1,
-    marginBottom: 10,
+    marginBottom: 20,
     paddingHorizontal: 10,
+    color: 'black',
+    fontWeight: 'bold',
   },
   commentInput: {
     height: 80,
     textAlignVertical: 'top',
   },
-  reviewsContainer: {
+  scrollView: {
     width: '100%',
-    flex: 1,
   },
-  subtitle: {
+  reviewContainer: {
+    marginTop: 10,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: 'lightgray',
+    borderRadius: 5,
+    backgroundColor: 'white',
+  },
+  reviewTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 5,
+    color: 'darkgreen',
   },
-  reviewItem: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    padding: 10,
-    marginBottom: 10,
-  },
-  footer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  footerText: {
-    fontSize: 16,
-  },
-  clearButton: {
-    color: 'red',
+  submittedText: {
+    color: 'black',
     fontWeight: 'bold',
-    marginRight: 10,
   },
 });
 
